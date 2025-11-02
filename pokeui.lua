@@ -107,19 +107,19 @@ pokemonconfig = function()
       minw = 3.85,
       colour = HEX("ED533A"),
       button = "pokermon_joker_pool",
-      label = {"Joker Pool Options"}
+      label = {"宝可梦卡池设置"}
     }),
     UIBox_button({
       minw = 3.85,
       colour = HEX("FF7ABF"),
       button = "pokermon_energy",
-      label = {"Energy Options"}
+      label = {"能量选项"}
     }),
     UIBox_button({
       minw = 3.85,
       colour = HEX("9AA4B7"),
       button = "pokermon_misc_no_restart",
-      label = {"Misc Options"}
+      label = {"扑克牌设置"}
     }),
     {
       n = G.UIT.R,
@@ -143,19 +143,19 @@ pokemonconfig = function()
       minw = 3.85,
       colour = HEX("38b8f8"),
       button = "pokermon_content",
-      label = {"Content Options"}
+      label = {"游戏内容选项"}
     }),
     UIBox_button({
       minw = 3.85,
       colour = HEX("c135ff"),
       button = "pokermon_visual",
-      label = {"Visual Options"}
+      label = {"视觉效果"}
     }),
     UIBox_button({
       minw = 3.85,
       colour = HEX("9AA4B7"),
       button = "pokermon_misc_restart",
-      label = {"Misc Options"}
+      label = {"游戏性"}
     }),
   }
   return config_nodes
