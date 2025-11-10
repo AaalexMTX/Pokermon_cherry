@@ -947,10 +947,10 @@ local mega_pidgeot = {
   name = "mega_pidgeot", 
   pos = { x = 10, y = 0 },
   soul_pos = { x = 11, y = 0 },
-  config = {extra = {Xmult_multi = 0.75}},
+  config = {extra = {Xmult_multi = 0.75, suits = '', ranks = '', mults = 0}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-		return {vars = {center.ability.extra.Xmult_multi}}
+    return { vars = { center.ability.extra.Xmult_multi, center.ability.extra.mults, center.ability.extra.suits, center.ability.extra.ranks } }
   end,
   rarity = "poke_mega",
   cost = 12,
@@ -958,16 +958,20 @@ local mega_pidgeot = {
   ptype = "Colorless",
   atlas = "Megas",
   gen = 1,
-  blueprint_compat = false,
+  blueprint_compat = true,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main then
         local ranks = 0
         local suits = 0
+        card.ability.extra.suits = ""
+        card.ability.extra.ranks = ""
+        card.ability.extra.mults = 0
         
         for k, v in pairs(SMODS.Suits) do
           for x, y in pairs(context.scoring_hand) do
             if y:is_suit(v.key) then
+              card.ability.extra.suits = card.ability.extra.suits .."_" .. v.key
               suits = suits + 1
               break
             end
@@ -977,12 +981,14 @@ local mega_pidgeot = {
         for k, v in pairs(SMODS.Ranks) do
           for x, y in pairs(context.scoring_hand) do
             if v.id == y:get_id() then
+              card.ability.extra.ranks = card.ability.extra.ranks .. "_" .. v.id
               ranks = ranks + 1
               break
             end
           end
         end
         if (ranks + suits) > 0 then
+          card.ability.extra.mults = 1 + card.ability.extra.Xmult_multi * (ranks + suits)
           return {
             message = localize{type = 'variable', key = 'a_xmult', vars = {1 + card.ability.extra.Xmult_multi * (ranks + suits)}}, 
             colour = G.C.XMULT,

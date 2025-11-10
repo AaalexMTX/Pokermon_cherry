@@ -152,7 +152,7 @@ local megasleeve = {
                     self.config.shop_size}}
   end,
 	pos = { x = 0, y = 0 },
-	atlas = "placeholder_sleeve",
+	atlas = "AtlasDecksBasic",
   apply = function(self)
     CardSleeves.Sleeve.apply(self)
     G.E_MANAGER:add_event(Event({

@@ -14,6 +14,20 @@ local jd_def = JokerDisplay.Definitions
 --	Staravia
 --	Staraptor
 --	Bidoof
+jd_def["j_poke_bidoof"] = {
+    text = {
+        { text = "+", colour = G.C.ORANGE },
+        { ref_table = "card.ability.extra", ref_value = "rerolls", colour = G.C.ORANGE },
+    },
+    reminder_text = {
+        { text = "(" },
+        { ref_table = "card.joker_display_values", ref_value = "localized_text", colour = G.C.GREEN },
+        { text = ")" },
+    },
+    calc_function = function(card)
+        card.joker_display_values.localized_text = localize('poke_reroll_plural')
+    end
+}
 --	Bibarel
 --	Kricketot
 --	Kricketune

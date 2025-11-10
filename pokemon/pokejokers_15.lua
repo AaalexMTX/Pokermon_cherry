@@ -132,11 +132,13 @@ local mega_lopunny={
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     local hand = localize('poke_none')
+    local mult = 1
     if G.scry_view and G.scry_view.cards and #G.scry_view.cards > 0 then
       local text,disp_text = G.FUNCS.get_poker_hand_info(G.scry_view.cards)
-      hand = text
+      hand = disp_text
+      mult = G.GAME.hands[text].level
     end
-    return {vars = {center.ability.extra.scry, hand}}
+    return {vars = {center.ability.extra.scry, hand, mult}}
   end,
   designer = "King_Alloy",
   rarity = "poke_mega",

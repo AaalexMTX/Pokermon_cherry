@@ -3,7 +3,7 @@ local create_energy = function(self, card)
     return create_card("Spectral", G.pack_cards, nil, nil, true, true, 'c_poke_double_rainbow_energy', nil)
   end
   local match_type = pseudorandom(pseudoseed('match'))
-  if match_type > .50 and #G.jokers.cards > 0 then
+  if match_type > .20 and #G.jokers.cards > 0 then
     local energy_types = {}
     for l, v in pairs(G.jokers.cards) do
       local match = matching_energy(v)
@@ -67,9 +67,9 @@ end
 local create_pocket_card = function(self, card, i)
     if i == 1 then
       return create_energy(self, card)
-    elseif i == 2 and card.from_tag and G.GAME.round_resets.ante >= 5 and not next(SMODS.find_card('c_poke_megastone')) then
+    elseif i == 2 and card.from_tag and G.GAME.round_resets.ante >= 3 and not next(SMODS.find_card('c_poke_megastone')) then
       local mega = pseudorandom(pseudoseed('pocket'))
-      if mega > .75 then
+      if mega > .10 then
         return create_card("Item", G.pack_cards, nil, nil, true, true, 'c_poke_megastone', nil)
       else
         return create_item(self, card)

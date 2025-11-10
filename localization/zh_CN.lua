@@ -804,6 +804,7 @@ return {
                     "计分手牌中每有一种",
                     "不同的{C:attention}点数{}和{C:attention}花色{}",
                     "给予{X:mult,C:white} X#1# {}倍率",
+                    "{C:inactive,s:0.8}(当前X#2#{}倍率, 花色:#3#,点数:#4#)",
                 }
             },
             j_poke_rattata = {
@@ -3389,6 +3390,7 @@ j_poke_numel = {
                     "为其添加{C:dark_edition}闪箔{}、{C:dark_edition}全息{}或{C:dark_edition}多彩{}",
 					"若{C:attention}首次弃牌{}仅包含{C:attention}1{}张卡牌，",
 					"{C:attention}销毁{}该卡牌",
+                }
             },
             j_poke_bidoof = {
                 name = "大牙狸",
@@ -3477,7 +3479,7 @@ j_poke_numel = {
                     "{C:purple}+#1# 预见",
                     "提供等同于{C:attention}预知牌型{}",
                     "{C:attention}等级{}的{X:mult,C:white}X{}倍数",
-                    "{C:inactive}(已预知牌型:{C:ttention}#2#{C:inactive})",
+                    "{C:inactive}(预知牌型:{C:attention}#2#{C:inactive},当前:{C:attention}X#3#{C:inactive}倍率)",
                 }
             },
             j_poke_mismagius = {
@@ -3918,8 +3920,6 @@ j_poke_numel = {
                   "生成一个{C:attention}垃圾标签{}",
                   "{C:inactive}(当前{C:chips}+#1#{C:inactive} 筹码)",
                 }
-            },
-            
             },
             j_poke_zorua = {
                 name = "索罗亚",
