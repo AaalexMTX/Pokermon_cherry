@@ -118,6 +118,14 @@ return {
                     "对随机一个属性施加减益",
                 },
             },
+            bl_poke_mirror = {
+                name = "镜子",
+                text = {
+                    "最右侧的小丑牌",
+                    "在 {C:attention}选择盲注{} 时",
+                    "会变成 {C:attention}百变怪",
+                },
+            },
         },
         Item = {
             c_poke_pokeball = {

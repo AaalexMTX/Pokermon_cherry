@@ -67,13 +67,19 @@ end
 local create_pocket_card = function(self, card, i)
     if i == 1 then
       return create_energy(self, card)
-    elseif i == 2 and card.from_tag and G.GAME.round_resets.ante >= 3 and not next(SMODS.find_card('c_poke_megastone')) then
+    elseif i == 2 and G.GAME.round_resets.ante >= 3 and not next(SMODS.find_card('c_poke_megastone')) then
       local mega = pseudorandom(pseudoseed('pocket'))
-      if mega > .10 then
+      if mega > .50 then
         return create_card("Item", G.pack_cards, nil, nil, true, true, 'c_poke_megastone', nil)
       else
         return create_item(self, card)
       end
+    elseif i == 3 then
+      local ds = pseudorandom(pseudoseed('pocket'))
+      if ds > .50 then
+       return create_card("Item", G.pack_cards, nil, nil, true, true, 'c_poke_masterball', nil)
+      end
+      return create_item(self, card)
     else
       return create_item(self, card)
     end
