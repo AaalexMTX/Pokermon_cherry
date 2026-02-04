@@ -115,9 +115,6 @@ local venusaur={
   config = {extra = {money_mod = 2, earned = 0, h_size = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue + 1] = {set = 'Other', key = 'mega_poke'}
-    end
     return {vars = {center.ability.extra.money_mod, center.ability.extra.earned, center.ability.extra.h_size, localize(G.GAME.current_round.bulb1card and G.GAME.current_round.bulb1card.rank or "Ace", 'ranks')}}
   end,
   rarity = "poke_safari", 
@@ -296,14 +293,6 @@ local charizard={
   config = {extra = {mult = 36, Xmult = 1.5, d_remaining = 0, d_size = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
-    if pokermon_config.detailed_tooltips then
-      if next(SMODS.find_card('c_poke_megastone')) then
-        info_queue[#info_queue+1] = {set = 'Other', key = 'split_mega', vars = {"Mega Charizard X", "Mega Charizard Y"}}
-      end
-    end
     return {vars = {center.ability.extra.mult, center.ability.extra.Xmult, center.ability.extra.d_remaining, center.ability.extra.d_size}}
   end,
   rarity = "poke_safari", 
@@ -339,28 +328,14 @@ local charizard={
     G.GAME.round_resets.discards = G.GAME.round_resets.discards - card.ability.extra.d_size
     ease_discard(-card.ability.extra.d_size)
   end,
-  megas = {"mega_charizard_x","mega_charizard_y"},
-  getMega = function(self, card)
-    -- Leftmost = X, Rightmost = Y, Middle = Random
-    local mega = nil
-    for k, v in ipairs(G.jokers.cards) do
-      if card == v and k == 1 then
-        mega = self.megas[1]
-        break
-      elseif card == v and k == #G.jokers.cards then
-        mega = self.megas[2]
-      end
-    end
-    if not mega then mega = pseudorandom_element(self.megas, pseudoseed('megastone_charizard')) end
-    return mega
-  end
+  megas = {"mega_charizard_x", "mega_charizard_y"},
 }
 -- Mega Charizard X 006-1
 local mega_charizard_x = {
   name = "mega_charizard_x", 
   pos = {x = 2, y = 0},
   soul_pos = { x = 3, y = 0},
-  config = {extra = {Xmult = 5, d_remaining = 0}},
+  config = {extra = {Xmult = 5, d_remaining = 0, mult = 36}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.Xmult, center.ability.extra.d_remaining}}
@@ -389,7 +364,7 @@ local mega_charizard_y = {
   name = "mega_charizard_y", 
   pos = {x = 4, y = 0},
   soul_pos = { x = 5, y = 0},
-  config = {extra = {rounds = 1, d_size = 5}},
+  config = {extra = {rounds = 1, d_size = 5, mult = 36}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.d_size}}
@@ -475,6 +450,7 @@ local wartortle={
   gen = 1,
   copy_scaled = true,
   blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.before and not context.blueprint then
@@ -512,9 +488,6 @@ local blastoise={
   config = {extra = {chips = 120, chip_mod = 25, hands = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
 		return {vars = {center.ability.extra.chips, center.ability.extra.chip_mod, center.ability.extra.hands}}
   end,
   rarity = "poke_safari", 
@@ -734,9 +707,6 @@ local beedrill={
   cost = 5,
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
 		return {vars = {center.ability.extra.chips}}
   end,
   stage = "Two", 
@@ -895,9 +865,6 @@ local pidgeot={
   config = {extra = {mult_mod = 5}}, 
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
 		return {vars = {center.ability.extra.mult_mod}}
   end,
   rarity = "poke_safari", 
@@ -1027,9 +994,6 @@ local rattata={
     end
     return level_evo(self, card, context, "j_poke_raticate")
   end,
-  in_pool = function(self)
-    return pokemon_in_pool(self)
-  end
 }
 -- Raticate 020
 local raticate={
@@ -1253,7 +1217,7 @@ local pikachu={
   ptype = "Lightning",
   atlas = "Pokedex1",
   gen = 1,
-  blueprint_compat = false,
+  blueprint_compat = true,
   calculate = function(self, card, context)
     if context.setting_blind then
       local dollars = G.GAME.dollars
@@ -1297,7 +1261,7 @@ local raichu={
   ptype = "Lightning",
   atlas = "Pokedex1",
   gen = 1, 
-  blueprint_compat = false,
+  blueprint_compat = true,
   calculate = function(self, card, context)
     if context.setting_blind then
       card:juice_up()
@@ -1349,15 +1313,15 @@ local sandshrew={
     if context.remove_playing_cards and card.ability.extra.glass_restored <= 0 and not context.blueprint then
       local card_to_copy = nil
       for k, v in ipairs(context.removed) do
-        if v.shattered and card.ability.extra.glass_restored <= 0 then
-
+        if (SMODS.has_enhancement(v, 'm_glass') or v.glass_trigger) and card.ability.extra.glass_restored <= 0 then
           G.E_MANAGER:add_event(Event({
               func = function()
                   local copy = copy_card(v, nil, nil, G.playing_card)
                   copy:add_to_deck()
                   G.deck.config.card_limit = G.deck.config.card_limit + 1
                   table.insert(G.playing_cards, copy)
-                  G.hand:emplace(copy)
+                  local area = context.poke_removed_at_end and G.deck or G.hand
+                  area:emplace(copy)
                   copy.states.visible = nil
                   copy:start_materialize()
                   playing_card_joker_effects({copy})
@@ -1417,7 +1381,7 @@ local sandslash={
                     center.ability.extra.glass_limit - center.ability.extra.glass_restored, 
                     colours = {center.ability.extra.glass_restored >= center.ability.extra.glass_limit and G.C.UI.TEXT_INACTIVE}}}
   end,
-  rarity = 2,
+  rarity = "poke_safari",
   cost = 6, 
   enhancement_gate = 'm_glass',
   stage = "One", 
@@ -1429,14 +1393,15 @@ local sandslash={
     if context.remove_playing_cards and card.ability.extra.glass_restored < card.ability.extra.glass_limit and not context.blueprint then
       local card_to_copy = nil
       for k, v in ipairs(context.removed) do
-        if v.shattered and card.ability.extra.glass_restored < card.ability.extra.glass_limit then
+        if (SMODS.has_enhancement(v, 'm_glass') or v.glass_trigger) and card.ability.extra.glass_restored < card.ability.extra.glass_limit then
           G.E_MANAGER:add_event(Event({
               func = function()
                   local copy = copy_card(v, nil, nil, G.playing_card)
                   copy:add_to_deck()
                   G.deck.config.card_limit = G.deck.config.card_limit + 1
                   table.insert(G.playing_cards, copy)
-                  G.hand:emplace(copy)
+                  local area = context.poke_removed_at_end and G.deck or G.hand
+                  area:emplace(copy)
                   copy.states.visible = nil
                   copy:start_materialize()
                   playing_card_joker_effects({copy})

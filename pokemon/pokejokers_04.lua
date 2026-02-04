@@ -156,9 +156,6 @@ local gengar={
         info_queue[#info_queue+1] = G.P_CENTERS.e_negative
       end
     end
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
     return {vars = {center.ability.extra.gengar_rounds}}
   end,
   rarity = "poke_safari", 
@@ -525,7 +522,7 @@ local electrode={
     end
     return {vars = {center.ability.extra.Xmult, center.ability.extra.money}}
   end,
-  rarity = 3, 
+  rarity = "poke_safari", 
   cost = 6, 
   stage = "One", 
   ptype = "Lightning",
@@ -718,14 +715,10 @@ local marowak={
     end
   end,
   add_to_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
   end,
   remove_from_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
   end, 
 }
 -- Hitmonlee 106
@@ -990,7 +983,7 @@ local chansey={
     if G.playing_cards then
       local enhance_count = 0
       for k, v in pairs(G.playing_cards) do
-        if SMODS.has_enhancement(v, 'm_lucky') then enhance_count = enhance_count  + 1 end
+        if v.config.center.key == "m_lucky" then enhance_count = enhance_count  + 1 end
       end
       deck_data = '['..tostring(enhance_count)..'/'..tostring(math.ceil(#G.playing_cards/4))..'] '
     end
@@ -1051,7 +1044,7 @@ local tangela={
     local num, dem = SMODS.get_probability_vars(card, card.ability.extra.num, card.ability.extra.dem, 'tangela')
     return {vars = {card.ability.extra.mult, card.ability.extra.chips, card.ability.extra.money_mod, num, dem, wild_left}}
   end,
-  rarity = 2, 
+  rarity = 1, 
   cost = 6,
   enhancement_gate = 'm_wild',
   stage = "Basic",
@@ -1111,9 +1104,6 @@ local kangaskhan={
   config = {extra = {card_limit = 2, interest_cap = 5}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
 		return {vars = {center.ability.extra.card_limit, center.ability.extra.interest_cap/5}}
   end,
   rarity = 2, 
@@ -1195,7 +1185,7 @@ local horsea={
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.mult, center.ability.extra.mult_mod}}
   end,
-  rarity = 1, 
+  rarity = 2, 
   cost = 3, 
   stage = "Basic", 
   ptype = "Water",
@@ -1240,7 +1230,7 @@ local seadra={
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.mult, center.ability.extra.mult_mod}}
   end,
-  rarity = 2, 
+  rarity = "poke_safari", 
   cost = 6, 
   stage = "One", 
   ptype = "Water",

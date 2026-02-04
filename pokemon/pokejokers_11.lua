@@ -13,6 +13,7 @@ local aron = {
   gen = 3,
   ptype = "Metal",
   blueprint_compat = true,
+  perishable_compat = false,
   enhancement_gate = 'm_steel',
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
@@ -53,13 +54,14 @@ local lairon = {
   name = "lairon",
   pos = { x = 3, y = 5 },
   config = { extra = { Xmult = 1, Xmult_mod = .4, eaten = 0 }, evo_rqmt = 4 },
-  rarity = 3,
+  rarity = "poke_safari",
   cost = 8,
   stage = "One",
   atlas = "Pokedex3",
   gen = 3,
   ptype = "Metal",
   blueprint_compat = true,
+  perishable_compat = false,
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
@@ -108,6 +110,7 @@ local aggron = {
   gen = 3,
   ptype = "Metal",
   blueprint_compat = true,
+  perishable_compat = false,
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
@@ -154,6 +157,48 @@ local aggron = {
 -- Volbeat 313
 -- Illumise 314
 -- Roselia 315
+local roselia={
+  name = "roselia",
+  pos = {x = 0, y = 0},
+  config = {extra = {retriggers = 2,}},
+  loc_vars = function(self, info_queue, center)
+    type_tooltip(self, info_queue, center)
+    info_queue[#info_queue+1] = G.P_CENTERS.m_poke_seed
+    return {vars = {center.ability.extra.retriggers, }}
+  end,
+  rarity = 2,
+  cost = 7,
+  gen = 3,
+  item_req = "shinystone",
+  stage = "Basic",
+  ptype = "Grass",
+  atlas = "Pokedex3",
+  perishable_compat = true,
+  blueprint_compat = true,
+  eternal_compat = true,
+  calculate = function(self, card, context)
+    if context.repetition and not context.end_of_round and context.cardarea == G.play and G.GAME.current_round.hands_played == 0 and context.other_card == context.scoring_hand[1]
+      and poke_is_odd(context.other_card) then
+      return {
+        repetitions = card.ability.extra.retriggers
+      }
+    end
+    if context.before and context.cardarea == G.jokers and not context.blueprint then
+      if G.GAME.current_round.hands_played == 0 and not poke_is_odd(context.scoring_hand[1]) then
+        local _card = context.scoring_hand[1]
+        _card:set_ability(G.P_CENTERS.m_poke_seed, nil, true)
+        _card:set_sprites(_card.config.center)
+        G.E_MANAGER:add_event(Event({
+            func = function()
+                _card:juice_up()
+                return true
+            end
+        })) 
+      end
+    end
+    return item_evo(self, card, context, "j_poke_roserade")
+  end,
+}
 -- Gulpin 316
 -- Swalot 317
 -- Carvanha 318
@@ -211,6 +256,9 @@ local camerupt={
   config = {extra = {Xmult = 4, cards_scored = 0, score_goal = 20}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
+    if pokermon_config.detailed_tooltips then
+      info_queue[#info_queue+1] = G.P_CENTERS.m_mult
+    end
     return {vars = {center.ability.extra.Xmult, center.ability.extra.score_goal, math.max(0, center.ability.extra.score_goal - center.ability.extra.cards_scored)}}
   end,
   designer = "xtremepolymath",
@@ -259,6 +307,9 @@ local mega_camerupt={
   config = {extra = {Xmult = 1, Xmult2 = 1, Xmult_multi = 0.5}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
+    if pokermon_config.detailed_tooltips then
+      info_queue[#info_queue+1] = G.P_CENTERS.m_mult
+    end
     return {vars = {center.ability.extra.Xmult, center.ability.extra.Xmult_multi}}
   end,
   designer = "xtremepolymath",
@@ -304,5 +355,5 @@ local mega_camerupt={
 -- Flygon 330
 return {
   name = "Pokemon Jokers 301-330",
-  list = {aron, lairon, aggron, numel, camerupt, mega_camerupt},
+  list = {aron, lairon, aggron, roselia, numel, camerupt, mega_camerupt},
 }

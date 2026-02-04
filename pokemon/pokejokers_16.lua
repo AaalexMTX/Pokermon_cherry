@@ -26,7 +26,7 @@ local mantyke={
   ptype = "Water",
   atlas = "Pokedex4",
   gen = 4,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -41,11 +41,12 @@ local mantyke={
       end
     end
     if context.end_of_round and not context.individual and not context.repetition and not card.debuff then
-      local _card = create_card('Tarot', G.consumeables, nil, nil, nil, nil, 'c_devil')
-      local edition = {negative = true}
-      _card:set_edition(edition, true)
-      _card:add_to_deck()
-      G.consumeables:emplace(_card)
+      G.E_MANAGER:add_event(Event({
+        func = function()
+          SMODS.add_card{set = 'Tarot', key = 'c_devil', edition = 'e_negative'}
+          return true
+        end
+      }))
     end
     return level_evo(self, card, context, "j_poke_mantine")
   end
@@ -336,7 +337,8 @@ local magmortar={
   ptype = "Fire",
   atlas = "Pokedex4",
   gen = 4,
-  blueprint_compat = false,
+  blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
     if context.first_hand_drawn and not context.blueprint then
       card.ability.extra.remove_triggered = false
@@ -426,11 +428,11 @@ local togekiss={
 local yanmega={
   name = "yanmega",
   pos = {x = 12, y = 5},
-  config = {extra = {mult = 6,chips = 12, num = 1, dem = 3, retriggers = 1}},
+  config = {extra = {mult_mod = 6,chip_mod = 12, num = 1, dem = 3, retriggers = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     local num, dem = SMODS.get_probability_vars(center, center.ability.extra.num, center.ability.extra.dem, 'yanmega')
-    return {vars = {center.ability.extra.mult, center.ability.extra.chips, num, dem}}
+    return {vars = {center.ability.extra.mult_mod, center.ability.extra.chip_mod, num, dem}}
   end,
   rarity = "poke_safari",
   cost = 8,
@@ -445,8 +447,8 @@ local yanmega={
     if context.individual and not context.end_of_round and context.cardarea == G.play then
       if context.other_card:get_id() == 3 or context.other_card:get_id() == 6 then
         return {
-          mult = card.ability.extra.mult,
-          chips = card.ability.extra.chips,
+          mult = card.ability.extra.mult_mod,
+          chips = card.ability.extra.chip_mod,
           card = card
         }
       end
@@ -687,7 +689,7 @@ local porygonz={
     end
     if context.using_consumeable and context.consumeable.ability.set == 'Energy' and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
       local energy_key = nil
-      if pseudorandom('porygonz') < .05 then
+      if pseudorandom('porygonz') < (1/256) then
         energy_key = 'c_poke_bird_energy'
       end
       G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
@@ -701,7 +703,7 @@ local porygonz={
                   G.GAME.consumeable_buffer = 0
               return true
           end)}))
-      card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize("poke_plus_energy"), colour = G.ARGS.LOC_COLOURS["pink"]})
+      card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize("poke_plus_energy"), colour = G.ARGS.LOC_COLOURS["pink"]})
     end
   end,
   add_to_deck = function(self, card, from_debuff)

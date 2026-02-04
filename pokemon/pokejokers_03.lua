@@ -212,7 +212,6 @@ local alakazam={
     if pokermon_config.detailed_tooltips then
       info_queue[#info_queue+1] = { set = 'Tarot', key = 'c_fool'}
       info_queue[#info_queue+1] = { set = 'Item', key = 'c_poke_twisted_spoon', poke_add_desc = true}
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
     end
     local num, dem = SMODS.get_probability_vars(center, center.ability.extra.num, center.ability.extra.dem, 'alakazam')
     return {vars = {num, dem, center.ability.extra.card_limit}}
@@ -254,14 +253,10 @@ local alakazam={
     end
   end,
   add_to_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
   end,
   remove_from_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
   end, 
   megas = {"mega_alakazam"}
 }
@@ -301,14 +296,10 @@ local mega_alakazam={
     end
   end,
   add_to_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit + card.ability.extra.card_limit
   end,
   remove_from_deck = function(self, card, from_debuff)
-    G.E_MANAGER:add_event(Event({func = function()
-      G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
-      return true end }))
+    G.consumeables.config.card_limit = G.consumeables.config.card_limit - card.ability.extra.card_limit
   end, 
 }
 -- Machop 066
@@ -516,10 +507,10 @@ local weepinbell={
 local victreebel={
   name = "victreebel", 
   pos = {x = 5, y = 5},
-  config = {extra = {chips = 16, retriggers = 1}},
+  config = {extra = {chips = 24, retriggers = 1, retrigger_max = 4, round_retriggers = 0}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-		return {vars = {center.ability.extra.chips}}
+		return {vars = {center.ability.extra.chips, center.ability.extra.retrigger_max, math.max(0, center.ability.extra.retrigger_max - center.ability.extra.round_retriggers)}}
   end,
   rarity = "poke_safari", 
   cost = 10, 
@@ -537,12 +528,13 @@ local victreebel={
           }
       end
     end
-    if context.repetition and context.cardarea == G.play and not context.other_card.debuff then
+    if context.repetition and context.cardarea == G.play and not context.other_card.debuff and card.ability.extra.round_retriggers < card.ability.extra.retrigger_max then
       if context.other_card:get_id() == 2 or 
          context.other_card:get_id() == 4 or 
          context.other_card:get_id() == 6 or 
          context.other_card:get_id() == 8 or 
          context.other_card:get_id() == 10 then
+           card.ability.extra.round_retriggers = card.ability.extra.round_retriggers + 1
           return {
             message = localize('k_again_ex'),
             repetitions = card.ability.extra.retriggers,
@@ -550,8 +542,13 @@ local victreebel={
           }
       end
     end
-  end
+    if context.end_of_round and not context.individual and not context.repetition and not context.blueprint then
+      card.ability.extra.round_retriggers = 0
+    end
+  end,
+  --megas = { "mega_victreebel" },
 }
+
 -- Tentacool 072
 local tentacool={
   name = "tentacool", 
@@ -844,9 +841,6 @@ local slowbro={
   config = {extra = {Xmult_mod = 0.4, Xmult = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
     local xmult_total = center.ability.extra.Xmult
     if G.STATE == G.STATES.SELECTING_HAND or G.STATE == G.STATES.HAND_PLAYED or G.STATE == G.STATES.DRAW_TO_HAND or G.STATE == G.STATES.PLAY_TAROT then
       xmult_total = xmult_total + G.GAME.current_round.hands_played * center.ability.extra.Xmult_mod
@@ -1267,13 +1261,13 @@ local grimer={
 local muk={
   name = "muk", 
   pos = {x = 10, y = 6}, 
-  config = {extra = {mult = 3}},
+  config = {extra = {mult_mod = 2}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    return {vars = {center.ability.extra.mult, G.GAME.starting_deck_size, 
-                    math.max(0, ((G.playing_cards and (#G.playing_cards - G.GAME.starting_deck_size) or 0) * center.ability.extra.mult))}}
+    return {vars = {center.ability.extra.mult_mod, G.GAME.starting_deck_size, 
+                    math.max(0, ((G.playing_cards and (#G.playing_cards - G.GAME.starting_deck_size) or 0) * center.ability.extra.mult_mod))}}
   end,
-  rarity = 2, 
+  rarity = "poke_safari", 
   cost = 6, 
   stage = "One", 
   ptype = "Dark",
@@ -1284,9 +1278,9 @@ local muk={
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main and #G.playing_cards > G.GAME.starting_deck_size then
         return {
-          message = localize{type = 'variable', key = 'a_mult', vars = {card.ability.extra.mult * (#G.playing_cards - G.GAME.starting_deck_size)}}, 
+          message = localize{type = 'variable', key = 'a_mult', vars = {card.ability.extra.mult_mod * (#G.playing_cards - G.GAME.starting_deck_size)}}, 
           colour = G.C.MULT,
-          mult_mod = card.ability.extra.mult * (#G.playing_cards - G.GAME.starting_deck_size),
+          mult_mod = card.ability.extra.mult_mod * (#G.playing_cards - G.GAME.starting_deck_size),
           card = card
         }
       end
@@ -1310,7 +1304,7 @@ local muk={
           return true end }))
       delay(0.3)
       for i = 1, #G.jokers.cards do
-          G.jokers.cards[i]:calculate_joker({remove_playing_cards = true, removed = {target}})
+          G.jokers.cards[i]:calculate_joker({remove_playing_cards = true, removed = {target}, poke_removed_at_end = true})
       end
       card:juice_up()
     end

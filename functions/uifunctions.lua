@@ -173,6 +173,15 @@ local function populate_cardareas(keys, options)
 end
 
 function poke_create_UIBox_your_collection(args)
+  -- Fix for cards not realizing they're in a collection,
+  -- because the collection gets initialized *after* the cards do
+  -- -- Vanilla cards work without this because the joker collection is nested within a second overlay
+  local handle_overlay_menu = false
+  if not G.OVERLAY_MENU then
+    G.OVERLAY_MENU = true
+    handle_overlay_menu = true
+  end
+
   args = args or {}
 
   local keys = args.keys or {}
@@ -235,6 +244,9 @@ function poke_create_UIBox_your_collection(args)
     }
   end
 
+  -- Avoids crashing when `G.FUNCS.overlay_menu` tries to call the remove method
+  if handle_overlay_menu then G.OVERLAY_MENU = nil end
+
   return nodes
 end
 
@@ -270,13 +282,18 @@ local function parse_url(url)
 end
 
 local site_colours = {
-  ['youtube'] = G.C.RED,
-  ['twitch'] = G.C.PURPLE,
+  ['youtube'] = HEX("FF0033"),
+  ['twitch'] = HEX("6441A5"),
   ['steam'] = G.C.BLACK,
   ['steamcommunity'] = G.C.BLACK,
-  ['x'] = G.C.BLACK,
+  ['x'] = HEX("283234"),
   ['twitter'] = G.C.BLUE,
-  ['reddit'] = G.C.ORANGE,
+  ['bsky'] = HEX("006AFF"),
+  ['reddit'] = HEX("FF4500"),
+  ['carrd'] = HEX("4071B7"),
+  ['discord'] = HEX("5865F2"),
+  ['instagram'] = HEX("D60059"),
+  ['tiktok'] = HEX("283234")
 }
 
 local function get_site_colour(domain)
@@ -328,6 +345,60 @@ function G.FUNCS.pokermon_open_site(e)
     local url = e.config.url
     if url then
       love.system.openURL(url)
+    end
+  end
+end
+
+
+-- Ordering Collection by Pokedex Order, and enabling pokemon only in collection
+-- modifying this function for *two* different config settings
+SMODS.collection_pool = function(_base_pool)
+  local pool = {}
+  local inserts = {}
+  if type(_base_pool) ~= 'table' then return pool end
+  local is_array = _base_pool[1]
+  local ipairs = is_array and ipairs or pairs
+  for _, v in ipairs(_base_pool) do
+    local moved = false
+    if (not G.ACTIVE_MOD_UI or v.mod == G.ACTIVE_MOD_UI) and not v.no_collection then
+      -- Taking pokemon jokers out of the pool to sort and re-insert
+      if pokermon_config.order_jokers and v.stage and v.stage ~= 'Other' and v.name ~= "missingno" then
+        inserts[#inserts+1] = v
+        moved = true
+      end
+      -- Taking *non*-pokemon jokers out of the pool entirely if that toggle is on
+      local empty_vanilla = v.set == 'Joker' and not v.stage and pokermon_config.pokemon_only_collection
+      -- Otherwise work as normal
+      if not moved and not empty_vanilla then pool[#pool+1] = v end
+    end
+  end
+
+  -- Now sort pokemon in dex-order, then re-insert into pool
+  if pokermon_config.order_jokers then
+    table.sort(inserts, function(a, b) return pokermon.get_dex_number(a.name) < pokermon.get_dex_number(b.name) end)
+    for i = #inserts, 1, -1 do
+      local name = (inserts[i+1] or {}).name or 'missingno'
+      table.insert(pool, pokermon.find_pool_index(pool, name) or #pool + 1, inserts[i])
+    end
+  end
+
+  if not is_array then table.sort(pool, function(a,b) return a.order < b.order end) end
+  return pool
+end
+
+
+-- Toggle function for Stake + Sticker Skins
+G.FUNCS.toggle_pokermon_skins = function()
+  local vanilla_stakes = {'stake_white', 'stake_red', 'stake_green', 'stake_black', 'stake_blue', 'stake_purple', 'stake_orange', 'stake_gold'}
+  for k, _ in pairs(G.P_STAKES) do
+    if table.contains(vanilla_stakes, k) then
+      if pokermon_config.stake_skins then
+        SMODS.Stake:take_ownership(k, { atlas = "poke_pokestakes" }, true)
+        G.shared_stickers[string.sub(k, 7, -1)].atlas = G.ASSET_ATLAS["poke_pokestakes_stickers"]
+      else
+        SMODS.Stake:take_ownership(k, { atlas = "chips" }, true)
+        G.shared_stickers[string.sub(k, 7, -1)].atlas = G.ASSET_ATLAS["stickers"]
+      end
     end
   end
 end

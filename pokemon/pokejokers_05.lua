@@ -239,7 +239,8 @@ local magmar={
   ptype = "Fire",
   atlas = "Pokedex1",
   gen = 1,
-  blueprint_compat = false,
+  blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
     if context.first_hand_drawn and not context.blueprint then
       card.ability.extra.remove_triggered = false
@@ -275,9 +276,6 @@ local pinsir={
   config = {extra = {Xmult = 2}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
     return {vars = {center.ability.extra.Xmult}}
   end,
   rarity = 2, 
@@ -436,6 +434,11 @@ local magikarp={
         }
       end
     end
+    if context.modify_scoring_hand and not context.blueprint then
+      return {
+          add_to_hand = true
+      }
+    end
     return level_evo(self, card, context, "j_poke_gyarados")
   end
 }
@@ -446,9 +449,6 @@ local gyarados={
   config = {extra = {Xmult = 2.5}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    if pokermon_config.detailed_tooltips then
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
-    end
     return {vars = {center.ability.extra.Xmult}}
   end,
   rarity = "poke_safari", 
@@ -535,6 +535,7 @@ local lapras={
   atlas = "Pokedex1",
   gen = 1,
   blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main then
@@ -561,6 +562,7 @@ local lapras={
           G.STATE_COMPLETE = false
           G.GAME.current_round.used_packs = {}
           G.GAME.current_round.reroll_cost_increase = 0
+          G.GAME.current_round.free_rerolls = G.GAME.round_resets.free_rerolls
           calculate_reroll_cost(true)
           return true
         end,
@@ -591,7 +593,7 @@ local ditto={
       info_queue[#info_queue+1] = {set = 'Other', key = 'poke_volatile_'..center.ability.extra.volatile}
     end
   end,
-  rarity = 2, 
+  rarity = 3, 
   cost = 8, 
   stage = "Basic",
   ptype = "Colorless",
@@ -630,6 +632,7 @@ local ditto={
         end
       end
     end
+    if next(find_joker("Showman")) then return true end
     return true
   end
 }
@@ -657,7 +660,7 @@ local eevee={
   blueprint_compat = true,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
-      if context.joker_main then
+      if context.joker_main and G.GAME.current_round.hands_played == 0 then
         return {
           message = localize{type = 'variable', key = 'a_xmult', vars = {card.ability.extra.Xmult}}, 
           colour = G.C.XMULT,
@@ -853,28 +856,18 @@ local omanyte={
   blueprint_compat = true,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
-      if context.joker_main then
-        local first_level = nil
-        local second_level = nil
-        local third_level = nil
-        local threes = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 3 then threes = threes + 1 end
-        end
-        first_level = threes > 0
-        second_level = threes > 1
-        third_level = threes > 2
-        
-        if first_level then
-          if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
-            local _card = create_card('Tarot', G.consumeables, nil, nil, nil, nil, nil)
-            _card:add_to_deck()
-            G.consumeables:emplace(_card)
-            card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('k_plus_tarot'), colour = G.C.PURPLE})
-          end
+      if context.before then
+       get_ancient_amount(context.scoring_hand, 3, card)
+      end
+      if context.joker_main and card.ability.extra.ancient_count > 0 then
+        if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+          local _card = create_card('Tarot', G.consumeables, nil, nil, nil, nil, nil)
+          _card:add_to_deck()
+          G.consumeables:emplace(_card)
+          card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('k_plus_tarot'), colour = G.C.PURPLE})
         end
         
-        if third_level then
+        if card.ability.extra.ancient_count > 2 then
           card.ability.extra.third_times = card.ability.extra.third_times + 1
           if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
             local _card = create_card('Item', G.consumeables, nil, nil, nil, nil, nil)
@@ -884,13 +877,16 @@ local omanyte={
           end
         end
         
-        if second_level then
+        if card.ability.extra.ancient_count > 1 then
           local earned = ease_poke_dollars(card, "omanyte", card.ability.extra.money, true)
           return {
             dollars = earned, 
             card = card
           }
         end
+      end
+      if context.after then
+        card.ability.extra.ancient_count = 0
       end
     end
     return scaling_evo(self, card, context, "j_poke_omastar", card.ability.extra.third_times, self.config.evo_rqmt)
@@ -917,29 +913,17 @@ local omastar={
   blueprint_compat = true,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
-      if context.joker_main then
-        local first_level = nil
-        local second_level = nil
-        local third_level = nil
-        local fourth_level = nil
-        local threes = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 3 then threes = threes + 1 end
+      if context.before then
+       get_ancient_amount(context.scoring_hand, 3, card)
+      end
+      if context.joker_main and card.ability.extra.ancient_count > 0 then
+        if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+          local _card = create_card('Tarot', G.consumeables, nil, nil, nil, nil, nil)
+          _card:add_to_deck()
+          G.consumeables:emplace(_card)
+          card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('k_plus_tarot'), colour = G.C.PURPLE})
         end
-        first_level = threes > 0
-        second_level = threes > 1
-        third_level = threes > 2
-        fourth_level = threes > 3
-        
-        if first_level then
-          if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
-            local _card = create_card('Tarot', G.consumeables, nil, nil, nil, nil, nil)
-            _card:add_to_deck()
-            G.consumeables:emplace(_card)
-            card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('k_plus_tarot'), colour = G.C.PURPLE})
-          end
-        end
-        if third_level then
+        if card.ability.extra.ancient_count > 2 then
           if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
             local _card = create_card('Item', G.consumeables, nil, nil, nil, nil, nil)
             _card:add_to_deck()
@@ -947,7 +931,7 @@ local omastar={
             card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('poke_plus_pokeitem'), colour = G.ARGS.LOC_COLOURS.item})
           end
         end
-        if fourth_level and not card.ability.extra.tag_created then
+        if card.ability.extra.ancient_count > 3 and not card.ability.extra.tag_created then
           card.ability.extra.tag_created = true
           local tag = ''
           local tag_choice = pseudorandom('sylveon')
@@ -971,13 +955,16 @@ local omastar={
             end)
           }))
         end
-        if second_level then
+        if card.ability.extra.ancient_count > 1 then
           local earned = ease_poke_dollars(card, "omastar", card.ability.extra.money, true)
           return {
             dollars = earned, 
             card = card
           }
         end
+      end
+      if context.after then
+        card.ability.extra.ancient_count = 0
       end
     end
     if context.end_of_round and not context.individual and not context.repetition then
@@ -1007,20 +994,11 @@ local kabuto={
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.before then
-        local twos = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 2 then twos = twos + 1 end
-        end
-        card.ability.extra.first_level = twos > 0
-        card.ability.extra.second_level = twos > 1
-        card.ability.extra.third_level = twos > 2
+        get_ancient_amount(context.scoring_hand, 2, card)
       end
-      if context.joker_main then
-        local chips = 0
-        if card.ability.extra.first_level then
-          chips = chips + card.ability.extra.chips1
-        end
-        if card.ability.extra.third_level then
+      if context.joker_main and card.ability.extra.ancient_count > 0 then
+        local chips = card.ability.extra.chips1
+        if card.ability.extra.ancient_count > 2 then
           card.ability.extra.third_times = card.ability.extra.third_times + 1
           chips = chips + card.ability.extra.chips3
         end
@@ -1033,8 +1011,11 @@ local kabuto={
           }
         end
       end
+      if context.after then
+        card.ability.extra.ancient_count = 0
+      end
     end
-    if context.individual and not context.end_of_round and context.cardarea == G.play and card.ability.extra.second_level then
+    if context.individual and not context.end_of_round and context.cardarea == G.play and card.ability.extra.ancient_count > 1 then
       if context.other_card:get_id() == 2 then 
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus or 0
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus + card.ability.extra.chips2
@@ -1069,21 +1050,12 @@ local kabutops={
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.before then
-        local twos = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 2 then twos = twos + 1 end
-        end
-        card.ability.extra.first_level = twos > 0
-        card.ability.extra.second_level = twos > 1
-        card.ability.extra.third_level = twos > 2
-        card.ability.extra.fourth_level = twos > 3
+        get_ancient_amount(context.scoring_hand, 2, card)
       end
-      if context.joker_main then
-        local chips = 0
-        if card.ability.extra.first_level then
-          chips = chips + card.ability.extra.chips1
-        end
-        if card.ability.extra.third_level then
+      if context.joker_main and card.ability.extra.ancient_count > 0 then
+        local chips = card.ability.extra.chips1
+        
+        if card.ability.extra.ancient_count > 2 then
           chips = chips + card.ability.extra.chips3
         end
         
@@ -1096,7 +1068,7 @@ local kabutops={
         end
       end
     end
-    if context.individual and not context.end_of_round and context.cardarea == G.play and card.ability.extra.second_level then
+    if context.individual and not context.end_of_round and context.cardarea == G.play and card.ability.extra.ancient_count > 1 then
       if context.other_card:get_id() == 2 then 
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus or 0
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus + card.ability.extra.chips2
@@ -1107,7 +1079,7 @@ local kabutops={
         }
       end
     end
-    if context.repetition and context.cardarea == G.play and card.ability.extra.fourth_level then
+    if context.repetition and context.cardarea == G.play and card.ability.extra.ancient_count > 3 then
       if context.other_card:get_id() == 2 then
         return {
             message = localize('k_again_ex'),
@@ -1115,6 +1087,10 @@ local kabutops={
             card = card
         }
       end
+    end
+    
+    if context.after then
+      card.ability.extra.ancient_count = 0
     end
   end,
   generate_ui = fossil_generate_ui,
@@ -1128,7 +1104,6 @@ local aerodactyl={
      type_tooltip(self, info_queue, center)
      info_queue[#info_queue+1] = {set = 'Other', key = 'ancient', vars = {localize(center.ability.extra.rank, 'ranks')}}
      if pokermon_config.detailed_tooltips then
-       info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
        info_queue[#info_queue+1] = G.P_CENTERS.m_glass
      end
      return {vars = {localize(center.ability.extra.rank, 'ranks'), center.ability.extra.Xmult, center.ability.extra.Xmult_mod}}
@@ -1144,23 +1119,11 @@ local aerodactyl={
     if context.first_hand_drawn and not context.blueprint then
       card.ability.extra.Xmult_original = card.ability.extra.Xmult
     end
-    if context.before then
-        local first_level = nil
-        local second_level = nil
-        local third_level = nil
-        local fourth_level = nil
-        local mult = 0
-        local ret_values = {}
-        local aces = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 14 then aces = aces + 1 end
-        end
-        first_level = aces > 0
-        second_level = aces > 1
-        third_level = aces > 2
-        fourth_level = aces > 3
-        
-        if third_level and not context.blueprint then
+    if context.cardarea == G.jokers and context.scoring_hand then
+      if context.before then
+        get_ancient_amount(context.scoring_hand, 14, card)
+          
+        if card.ability.extra.ancient_count > 2 and not context.blueprint then
           local target = nil
           for k, v in pairs(context.scoring_hand) do
             if v:get_id() == 14 and v.config.center == G.P_CENTERS.c_base then
@@ -1172,39 +1135,25 @@ local aerodactyl={
             poke_convert_cards_to(target, {mod_conv = 'm_glass'}, true, true)
           end
         end
-    end
-    if context.cardarea == G.jokers and context.scoring_hand then
-      if context.joker_main then
-        local first_level = nil
-        local second_level = nil
-        local third_level = nil
-        local fourth_level = nil
-        local mult = 0
-        local ret_values = {}
-        local aces = 0
-        for i = 1, #context.scoring_hand do
-            if context.scoring_hand[i]:get_id() == 14 then aces = aces + 1 end
-        end
-        first_level = aces > 0
-        second_level = aces > 1
-        third_level = aces > 2
-        fourth_level = aces > 3
-                
-        if second_level and not context.blueprint then
+      end
+    
+      if context.joker_main and card.ability.extra.ancient_count > 0 then
+        if card.ability.extra.ancient_count > 1 and not context.blueprint then
           card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
         end
         
-        if fourth_level and not context.blueprint then
+        if card.ability.extra.ancient_count > 3 and not context.blueprint then
           card.ability.extra.Xmult = card.ability.extra.Xmult * 2
         end
         
-        if first_level then
-          return {
-            message = localize{type = 'variable', key = 'a_xmult', vars = {card.ability.extra.Xmult}}, 
-            colour = G.C.XMULT,
-            Xmult_mod = card.ability.extra.Xmult
-          }
-        end
+        return {
+          message = localize{type = 'variable', key = 'a_xmult', vars = {card.ability.extra.Xmult}}, 
+          colour = G.C.XMULT,
+          Xmult_mod = card.ability.extra.Xmult
+        }
+      end
+      if context.after then
+        card.ability.extra.ancient_count = 0
       end
     end
     if not context.repetition and not context.individual and context.end_of_round and not context.blueprint then
@@ -1519,10 +1468,6 @@ local mewtwo={
       if not center.edition or (center.edition and not center.edition.polychrome) then
         info_queue[#info_queue+1] = G.P_CENTERS.e_polychrome
       end
-      if next(SMODS.find_card('c_poke_megastone')) then
-        info_queue[#info_queue+1] = {set = 'Other', key = 'split_mega', vars = {"Mega Mewtwo X", "Mega Mewtwo Y"}}
-      end
-      info_queue[#info_queue+1] = {set = 'Other', key = 'mega_poke'}
     end
     return {vars = {center.ability.extra.Xmult_multi}}
   end,
@@ -1536,7 +1481,7 @@ local mewtwo={
   calculate = function(self, card, context)
     if (context.end_of_round and G.GAME.blind.boss) and not context.repetition and not context.individual and not context.blueprint then
       local leftmost = G.jokers.cards[1]
-      if leftmost ~= card then
+      if leftmost ~= card and not leftmost.getting_sliced then
         card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize('k_duplicated_ex')})
         local chosen_joker = G.jokers.cards[1]
         
@@ -1584,21 +1529,7 @@ local mewtwo={
         }
     end
   end,
-  megas = {"mega_mewtwo_x","mega_mewtwo_y"},
-  getMega = function(self, card)
-    -- Leftmost = X, Rightmost = Y, Middle = Random
-    local mega = nil
-    for k, v in ipairs(G.jokers.cards) do
-      if card == v and k == 1 then
-        mega = self.megas[1]
-        break
-      elseif card == v and k == #G.jokers.cards then
-        mega = self.megas[2]
-      end
-    end
-    if not mega then mega = pseudorandom_element(self.megas, pseudoseed('megastone_charizard')) end
-    return mega
-  end
+  megas = {"mega_mewtwo_x", "mega_mewtwo_y"},
 }
 -- Mega Mewtwo X 150-1
 local mega_mewtwo_x = {

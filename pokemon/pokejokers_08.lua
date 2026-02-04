@@ -2,15 +2,15 @@
 local qwilfish = {
   name = "qwilfish", 
   pos = {x = 9, y = 5},
-  config = {extra = {hazards = 4, chips = 0, chip_mod = 25}},
+  config = {extra = {hazard_level = 1, chips = 0, chip_mod = 15}},
   loc_vars = function(self, info_queue, card)
     type_tooltip(self, info_queue, card)
     -- just to shorten function
     local abbr = card.ability.extra
-    info_queue[#info_queue+1] = {set = 'Other', key = 'poke_hazards', vars = {abbr.hazards}}
+    info_queue[#info_queue+1] = {set = 'Other', key = 'hazard_level', vars = poke_get_hazard_level_vars()}
     info_queue[#info_queue+1] = G.P_CENTERS.m_poke_hazard
     
-    return {vars = {abbr.hazards, abbr.chip_mod, abbr.chips}}
+    return {vars = {abbr.hazard_level, abbr.chip_mod, abbr.chips}}
   end,
   rarity = 2,
   cost = 7,
@@ -20,10 +20,8 @@ local qwilfish = {
   gen = 2,
   hazard_poke = true,
   blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
-    if context.setting_blind then
-      poke_set_hazards(card.ability.extra.hazards)
-    end
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main then
         return {
@@ -42,6 +40,12 @@ local qwilfish = {
       end
     end
   end,
+  add_to_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(card.ability.extra.hazard_level)
+  end,
+  remove_from_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(-card.ability.extra.hazard_level)
+  end
 }
 -- Scizor 212
 local scizor={
@@ -54,7 +58,6 @@ local scizor={
       info_queue[#info_queue+1] = G.P_CENTERS.e_foil
       info_queue[#info_queue+1] = G.P_CENTERS.e_holo
       info_queue[#info_queue+1] = G.P_CENTERS.e_polychrome
-      info_queue[#info_queue + 1] = {set = 'Other', key = 'mega_poke'}
     end
     local emult = 0 
     local echips = 0 
@@ -146,7 +149,7 @@ local mega_scizor={
   name = "mega_scizor",
   pos = {x = 4, y = 2},
   soul_pos = {x = 5, y = 2},
-  config = {extra = {Xmult_multi = 4}},
+  config = {extra = {Xmult_multi = 4, mult = 0, scizor_chips = 0, scizor_Xmult = 1, mult_mod = 4}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.Xmult_multi}}
@@ -232,7 +235,6 @@ local heracross = {
   config = {extra = {Xmult = 2}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    info_queue[#info_queue + 1] = {set = 'Other', key = 'mega_poke'}
     return {vars = {center.ability.extra.Xmult}}
   end,
   rarity = 2,
@@ -368,7 +370,7 @@ local teddiursa={
   ptype = "Colorless",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -393,7 +395,7 @@ local teddiursa={
 local ursaring={
   name = "ursaring",
   pos = {x = 5, y = 6},
-  config = {extra = {mult = 0,mult_mod = 3,}},
+  config = {extra = {mult = 0,mult_mod = 2,}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
@@ -408,7 +410,7 @@ local ursaring={
   ptype = "Colorless",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -451,7 +453,7 @@ local slugma={
   ptype = "Fire",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -504,7 +506,7 @@ local magcargo={
   ptype = "Fire",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -855,7 +857,7 @@ local mantine={
   ptype = "Water",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -892,12 +894,12 @@ local mantine={
 local skarmory = {
   name = "skarmory", 
   pos = {x = 5, y = 7},
-  config = {extra = {hazards = 4, Xmult_mod = 0.50}},
+  config = {extra = {hazard_level = 1, Xmult_mod = 0.4, hazard_max = 1}},
   loc_vars = function(self, info_queue, card)
     type_tooltip(self, info_queue, card)
     -- just to shorten function
     local abbr = card.ability.extra
-    info_queue[#info_queue+1] = {set = 'Other', key = 'poke_hazards', vars = {abbr.hazards}}
+    info_queue[#info_queue+1] = {set = 'Other', key = 'hazard_level', vars = poke_get_hazard_level_vars()}
     info_queue[#info_queue+1] = G.P_CENTERS.m_poke_hazard
     if pokermon_config.detailed_tooltips then
       info_queue[#info_queue+1] = G.P_CENTERS.m_steel
@@ -911,7 +913,7 @@ local skarmory = {
         end
       end 
     end
-    return {vars = {abbr.hazards, abbr.Xmult_mod, 1 + abbr.Xmult_mod * hazard_count}}
+    return {vars = {abbr.hazard_level, abbr.Xmult_mod, 1 + abbr.Xmult_mod * hazard_count, abbr.hazard_max}}
   end,
   rarity = 3,
   cost = 7,
@@ -922,9 +924,6 @@ local skarmory = {
   hazard_poke = true,
   blueprint_compat = true,
   calculate = function(self, card, context)
-    if context.setting_blind then
-      poke_set_hazards(card.ability.extra.hazards)
-    end
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main then
         local hazard_count = 0
@@ -946,18 +945,26 @@ local skarmory = {
       end
     end
   end,
+  add_to_deck = function(self, card, from_debuff)
+    poke_change_hazard_max(card.ability.extra.hazard_max)
+    poke_change_hazard_level(card.ability.extra.hazard_level)
+  end,
+  remove_from_deck = function(self, card, from_debuff)
+    poke_change_hazard_max(-card.ability.extra.hazard_max)
+    poke_change_hazard_level(-card.ability.extra.hazard_level)
+  end
 }
 -- Houndour 228
 local houndour={
   name = "houndour",
   pos = {x = 6, y = 7},
-  config = {extra = {mult_mod = 1,rounds = 5, discards = 2, active = false}},
+  config = {extra = {mult_mod = 1,rounds = 4, discards = 2, active = false}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     return {vars = {center.ability.extra.mult_mod, center.ability.extra.rounds, center.ability.extra.discards}}
   end,
   rarity = 2,
-  cost = 6,
+  cost = 4,
   stage = "Basic",
   ptype = "Dark",
   atlas = "Pokedex2",
@@ -969,7 +976,7 @@ local houndour={
     if context.pre_discard and context.full_hand and #context.full_hand > 0 and not context.hook and not context.blueprint then
       if card.ability.extra.active then
         card.ability.extra.active = false
-      elseif #context.full_hand > 3 then
+      elseif #context.full_hand > 4 then
         card.ability.extra.active = true
       end
     end
@@ -1018,11 +1025,15 @@ local houndoom={
   config = {extra = {mult_mod = 2,rounds = 5, active = false}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
-    info_queue[#info_queue + 1] = {set = 'Other', key = 'mega_poke'}
+    if pokermon_config.detailed_tooltips then
+      info_queue[#info_queue+1] = {set = 'Other', key = 'holding', vars = {"Medium"}}
+      info_queue[#info_queue+1] = { set = 'Spectral', key = 'c_medium'}
+      info_queue[#info_queue+1] = {key = 'purple_seal', set = 'Other'}
+    end
     return {vars = {center.ability.extra.mult_mod}}
   end,
-  rarity = 3,
-  cost = 8,
+  rarity = "poke_safari",
+  cost = 7,
   stage = "One",
   ptype = "Dark",
   atlas = "Pokedex2",
@@ -1034,7 +1045,7 @@ local houndoom={
     if context.pre_discard and context.full_hand and #context.full_hand > 0 and not context.hook and not context.blueprint then
       if card.ability.extra.active then
         card.ability.extra.active = false
-      elseif #context.full_hand > 3 then
+      elseif #context.full_hand > 4 then
         card.ability.extra.active = true
       end
     end
@@ -1074,6 +1085,12 @@ local houndoom={
     end
     if context.end_of_round and not context.individual and not context.repetition then
       card.ability.extra.active = false
+    end
+  end,
+  add_to_deck = function(self, card, from_debuff)
+    if not from_debuff then
+      local _card = SMODS.add_card{set = 'Spectral', key = 'c_medium'}
+      card_eval_status_text(_card, 'extra', nil, nil, nil, {message = localize('k_plus_spectral'), colour = G.C.SECONDARY_SET.Spectral})
     end
   end,
   megas = { "mega_houndoom" },
@@ -1215,7 +1232,7 @@ local phanpy={
   ptype = "Earth",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -1262,7 +1279,7 @@ local donphan={
   ptype = "Earth",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)
@@ -1409,7 +1426,7 @@ local stantler={
 local smeargle={
   name = "smeargle",
   pos = {x = 3, y = 8},
-  config = {extra = {copy_joker = nil, copy_pos = 0}},
+  config = {extra = {copy_joker = nil, copy_val = nil}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
@@ -1428,19 +1445,25 @@ local smeargle={
   blueprint_compat = false,
   eternal_compat = true,
   calculate = function(self, card, context)
-    if context.setting_blind and card.ability.blueprint_compat == 'compatible' and G.jokers.cards[#G.jokers.cards] ~= card and not card.getting_sliced then
-      local found_pos = 0
-      for i = 1, #G.jokers.cards do
-        if G.jokers.cards[i] == card then found_pos = i + 1 end
+    if context.setting_blind and G.jokers.cards[#G.jokers.cards] ~= card and not card.getting_sliced then
+      local found_pos = get_index(G.jokers.cards, card) + 1
+      if G.jokers.cards[found_pos] and card.ability.blueprint_compat == 'compatible' then
+        card.ability.extra.copy_joker = G.jokers.cards[found_pos]
+        card.ability.extra.copy_val = G.jokers.cards[found_pos].unique_val
+        card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize('k_copied_ex')})
       end
-      if G.jokers.cards[found_pos] then
-        card.ability.extra.copy_joker = G.jokers.cards[found_pos] 
-        card.ability.extra.copy_pos = found_pos
-      end
-      card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize('k_copied_ex')})
     end
-
-    local other_joker = G.jokers.cards[card.ability.extra.copy_pos]
+    -- On "load", check whether blueprinted joker exists, then re-set it
+    if card.ability.extra.copy_val and type(card.ability.extra.copy_joker) ~= 'table' then
+      card.ability.extra.copy_joker = poke_find_card(function(v) return v.unique_val == card.ability.extra.copy_val end)
+    end
+    -- Find the blueprinted joker
+    local other_joker = poke_find_card(function(v) return v == card.ability.extra.copy_joker end)
+    if not other_joker then
+      card.ability.extra.copy_joker = nil
+      card.ability.extra.copy_val = nil
+    end
+    -- Calculate the blueprinted joker
     if other_joker and other_joker ~= card and not context.no_blueprint then
       context.blueprint = (context.blueprint or 0) + 1
       context.blueprint_card = context.blueprint_card or card
@@ -1449,7 +1472,7 @@ local smeargle={
       context.blueprint = nil
       local eff_card = context.blueprint_card or card
       context.blueprint_card = nil
-      if other_joker_ret then 
+      if other_joker_ret then
         other_joker_ret.card = eff_card
         other_joker_ret.colour = G.C.BLACK
         return other_joker_ret
@@ -1487,43 +1510,18 @@ local smeargle={
           {n=G.UIT.T, config={ref_table = card.ability, ref_value = 'blueprint_compat_ui',colour = G.C.UI.TEXT_LIGHT, scale = 0.32*0.8}},
         }}
       }}
-    } or nil
+    }
     localize{type = 'descriptions', key = _c.key, set = _c.set, nodes = desc_nodes}
     desc_nodes[#desc_nodes+1] = main_end
   end,
-  load = function(self, card, card_table, other_card)
-    card.has_loaded = true
-  end,
   update = function(self, card, dt)
-    if card.has_loaded then
-      card.ability.extra.copy_joker = G.jokers.cards[card.ability.extra.copy_pos]
-      card.has_loaded = false
-    end
-    if card.ability.extra.copy_joker and card.ability.extra.copy_joker ~= G.jokers.cards[card.ability.extra.copy_pos] then
-      local found = nil
-      for i=1, #G.jokers.cards do
-        if card.ability.extra.copy_joker == G.jokers.cards[i] then
-          card.ability.extra.copy_pos = i
-          found = true
-          break
-        end
-      end
-      if not found then
-        card.ability.extra.copy_joker = nil
-        card.ability.extra.copy_pos = 0
-      end
-    end
     if G.STAGE == G.STAGES.RUN and card.area == G.jokers then
-      local found_pos = 0
-      for i = 1, #G.jokers.cards do
-        if G.jokers.cards[i] == card then found_pos = i + 1 end
-      end
+      local found_pos = get_index(G.jokers.cards, card) + 1
       local right_joker = G.jokers.cards[found_pos]
-      card.ability.blueprint_compat = ( right_joker and right_joker ~= card and not right_joker.debuff and right_joker.config.center.blueprint_compat and 'compatible') or 'incompatible'
+      card.ability.blueprint_compat = ( right_joker and right_joker ~= card and not right_joker.debuff
+          and right_joker.config.center.blueprint_compat and 'compatible')
+          or 'incompatible'
     end
-  end,
-  add_to_deck = function(self, card, from_debuff)
-    card.ability.extra.copy_joker = nil
   end,
 }
 -- Tyrogue 236
@@ -1538,6 +1536,7 @@ local tyrogue={
   atlas = "Pokedex2",
   gen = 2,
   blueprint_compat = true,
+  perishable_compat = false,
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
@@ -1625,6 +1624,7 @@ local hitmontop={
   atlas = "Pokedex2",
   gen = 2,
   blueprint_compat = true,
+  perishable_compat = false,
   calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.scoring_hand then
       if context.joker_main then
@@ -1753,7 +1753,7 @@ local magby={
   ptype = "Fire",
   atlas = "Pokedex2",
   gen = 2,
-  perishable_compat = true,
+  perishable_compat = false,
   blueprint_compat = true,
   eternal_compat = true,
   calculate = function(self, card, context)

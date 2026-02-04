@@ -3,11 +3,6 @@ pokermon.load_pokemon = function(item)
   if not item.key then
     item.key = item.name
   end
-  if not item.custom_pool_func then
-    item.in_pool = function(self)
-      return pokemon_in_pool(self)
-    end
-  end
   if not item.config then
     item.config = {}
   end
@@ -76,7 +71,7 @@ pokermon.load_pokemon = function(item)
 end
 
 pokermon.add_family = function(family)
-  table.insert(pokermon.family, family)
+  poke_add_to_family(nil, family)
 end
 
 pokermon.Pokemon = function(item, custom_prefix, custom_atlas)

@@ -132,6 +132,14 @@ poke_add_card = function(add_card, card, area)
       }
 end
 
+poke_add_playing_card = function(t, no_joker_effect)
+  local playing_card = SMODS.add_card(t)
+  if not no_joker_effect then
+    playing_card_joker_effects({playing_card})
+  end
+  return playing_card
+end
+
 poke_add_shop_card = function(add_card, card)
     if G.GAME.shop.joker_max == 1 then
       G.shop_jokers.config.card_limit = G.GAME.shop.joker_max + 1
@@ -193,7 +201,31 @@ poke_debug = function(message, verbose, depth)
   else
     sendDebugMessage(message)
   end
-end 
+end
+
+function poke_find_card(key_or_function, use_highlighted)
+  local is_target = function(card)
+    return (type(key_or_function) == "function") and key_or_function(card)
+      or card.config.center.key == key_or_function
+  end
+  for _, cardarea in pairs(SMODS.get_card_areas("jokers")) do
+    if use_highlighted and cardarea.highlighted and #cardarea.highlighted == 1 then
+      local highlighted = cardarea.highlighted[1]
+      if is_target(highlighted) then return highlighted end
+    elseif cardarea.cards then
+      for _, card in pairs(cardarea.cards) do
+        if is_target(card) then return card end
+      end
+    end
+  end
+end
+
+function poke_find_leftmost_or_highlighted(key_or_function)
+  if not key_or_function then
+    return G.jokers.highlighted[1] or G.jokers.cards[1]
+  end
+  return poke_find_card(key_or_function, true)
+end
 
 poke_vary_rank = function(card, decrease, seed, immediate)
   -- if it doesn't have a rank/suit within SMODS, don't do anything
@@ -378,6 +410,9 @@ poke_convert_cards_to = function(cards, t, noflip, immediate)
   for i = 1, #cards do
     if t.mod_conv then
       poke_conversion_event_helper(function() cards[i]:set_ability(G.P_CENTERS[t.mod_conv]) end, nil, immediate)
+      if t.mod_conv == 'm_poke_seed' then
+        cards[i]:set_sprites(cards[i].config.center)
+      end
     end
     if t.edition then
       poke_conversion_event_helper(function() cards[i]:set_edition(t.edition, true) end, nil, immediate)
@@ -436,8 +471,8 @@ function Game:init_game_object()
 end
 
 poke_is_in_collection = function(card)
+  if not card.area then return true end
   if G.your_collection then
-    if not card.area then return true end
     for k, v in pairs(G.your_collection) do
       if card.area == v then
         return true
@@ -463,26 +498,10 @@ tdmsg = function(tablename)
   end
 end
 
-local prev_evaluate_round = G.FUNCS.evaluate_round
-G.FUNCS.evaluate_round = function()
-  G.E_MANAGER:add_event(Event({
-    trigger = 'immediate',
-    func = function()
-      for i = #G.deck.cards, 1, -1 do
-        local card = G.deck.cards[i]
-        if SMODS.has_enhancement(card, "m_poke_hazard") then
-          card:set_ability(G.P_CENTERS.c_base, nil, true)
-        end
-      end
-      return true
-    end
-  }))
-  prev_evaluate_round()
-end
-
-poke_add_hazards = function(ratio, flat)
+poke_add_hazards = function(ratio, flat, area)
   local hazards = {}
   flat = flat or 0
+  area = area or G.deck
   local count = #G.playing_cards
   for _, v in pairs(G.playing_cards) do
     if SMODS.has_enhancement(v, "m_poke_hazard") then
@@ -492,8 +511,8 @@ poke_add_hazards = function(ratio, flat)
   local to_add = ratio and math.floor(count / ratio) or flat
   for i = 1, to_add do
     hazards[#hazards+1] = create_playing_card({
-      front = pseudorandom_element(G.P_CARDS, pseudoseed('qwilfish')), 
-      center = G.P_CENTERS.m_poke_hazard}, G.deck, nil, nil, {G.C.PURPLE
+      front = pseudorandom_element(G.P_CARDS, pseudoseed('hazards')), 
+      center = G.P_CENTERS.m_poke_hazard}, area, nil, nil, {G.C.PURPLE
     })
     SMODS.recalc_debuff(hazards[#hazards])
   end
@@ -510,9 +529,27 @@ poke_set_hazards = function(amount)
     end
     if #valid > 0 then
       local card = pseudorandom_element(valid, pseudoseed('hazard'))
-      card:set_ability(G.P_CENTERS.m_poke_hazard, nil, true)
+      card:set_ability(G.P_CENTERS.m_poke_hazard)
     end
   end
+end
+
+poke_change_hazard_max = function(mod)
+  G.GAME.hazard_max = G.GAME.hazard_max or 3
+  G.GAME.hazard_max = G.GAME.hazard_max + mod
+end
+
+poke_change_hazard_level = function(mod)
+  local max = G.GAME.hazard_max or 3
+  G.GAME.round_resets.hazard_level = G.GAME.round_resets.hazard_level or 0
+  G.GAME.round_resets.hazard_level = G.GAME.round_resets.hazard_level + mod
+end
+
+poke_get_hazard_level_vars = function()
+  local level = math.min(G.GAME.hazard_max or 3, G.GAME.round_resets.hazard_level or 0)
+  local max = G.GAME.hazard_max or 3
+  local vars = {level, max}
+  return vars
 end
 
 function poke_same_suit(hand)
@@ -540,12 +577,6 @@ function poke_get_rank(card)
   elseif id == 11 then rank = "Jack"
   else rank = ""..id end
   return rank
-end
-
-function applies_splash()
-  return next(SMODS.find_card('j_poke_magikarp')) or
-  next(SMODS.find_card('j_poke_feebas')) or
-  next(SMODS.find_card('j_poke_luvdisc'))
 end
 
 function poke_is_even(card)
@@ -578,7 +609,7 @@ function poke_suit_check(hand, num)
   
   for k, v in pairs(hand) do
     for x, y in pairs(SMODS.Suits) do
-      if not SMODS.has_any_suit(v) and v:is_suit(y.key) and not suits[y.key] then
+      if not SMODS.has_any_suit(v) and v:is_suit(y.key, true) and not suits[y.key] then
         suits[y.key] = true
         suit_count = suit_count + 1
         break
@@ -599,43 +630,82 @@ function poke_suit_check(hand, num)
   return suit_count >= num
 end
 
-
-
 set_joker_family_win = function(card)
-  if pokermon_config.previous_evo_stickers then
-    if get_family_keys(card.config.center.name, card.config.center.poke_custom_prefix, card) then
-      local keys = get_family_keys(card.config.center.name, card.config.center.poke_custom_prefix, card)
-      if #keys > 1 then
-        local index
-        for k, v in ipairs(keys) do
-          if type(v) == "table" then v = v.key end
-          if v == card.config.center.key then index = k end
-          --Excludes higher evolutions
-          if index and k > index and (G.P_CENTERS[v]['stage'] ~= card.config.center.stage or G.P_CENTERS[v]['stage'] == "Legendary") and G.P_CENTERS[v]['auto_sticker'] ~= true then break end 
-          -- This if statement makes me go cross-eyed so I'm sorry about that
-          if G.P_CENTERS[v] and G.P_CENTERS[v]['set'] == 'Joker' and not (G.P_CENTERS[v]['stage'] == card.config.center.stage) and not -- Excludes the same stage mons in an evo line
-              ((card.config.center.stage == "One" or card.config.center.stage == "Two" or card.config.center.stage == "Mega") and
-                  (G.P_CENTERS[v]['stage'] == G.P_CENTERS[get_previous_evo(card, true)]['stage']) and v ~= get_previous_evo(card, true)) or -- Checks for branching evos in previous stages
-              (card.config.center.stage == "Legendary" and get_previous_evo(card, true) and (G.P_CENTERS[v]['stage'] == G.P_CENTERS[get_previous_evo(card, true)]['stage'])) or -- (i.e Meltan or Cosmog or Terapagos)
-              (G.P_CENTERS[v] and G.P_CENTERS[v]['set'] == 'Joker' and G.P_CENTERS[v]['aux_poke'] == true and G.P_CENTERS[v]['stage'] == card.config.center.stage) or -- Checks for forms (which have the same stage i.e. Jirachi, Rotom)
-              (G.P_CENTERS[v] and G.P_CENTERS[v]['set'] == 'Joker' and G.P_CENTERS[v]['auto_sticker'] == true) then 
-
-            -- This is the bit that tracks joker wins
-            G.PROFILES[G.SETTINGS.profile].joker_usage[v] = G.PROFILES[G.SETTINGS.profile].joker_usage[v] or {count = 1, order = G.P_CENTERS[v]['order'], wins = {}, losses = {}, wins_by_key = {}, losses_by_key = {}}
-            if G.PROFILES[G.SETTINGS.profile].joker_usage[v] then
-              G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins = G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins or {}
-              G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins[G.GAME.stake] = (G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins[G.GAME.stake] or 0) + 1
-              G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins_by_key[SMODS.stake_from_index(G.GAME.stake)] =
-                  (G.PROFILES[G.SETTINGS.profile].joker_usage[v].wins_by_key[SMODS.stake_from_index(G.GAME.stake)] or 0) + 1
-            end
-          end
-        end
-      end
+  local keys = get_family_keys(card)
+  for _, v in pairs(keys) do
+    -- Since evo lines and aux_poke / auto-sticker can be tracked separately, this only needs to be the latter
+    if (G.P_CENTERS[v] and G.P_CENTERS[v].set == 'Joker' and G.P_CENTERS[v].auto_sticker)
+        or (card.config.center.aux_poke and (G.P_CENTERS[v] and card.config.center.stage == G.P_CENTERS[v].stage)) then
+      -- This is the bit that tracks joker wins
+      G.PROFILES[G.SETTINGS.profile].joker_usage[v] = G.PROFILES[G.SETTINGS.profile].joker_usage[v]
+          or {count = 1, order = G.P_CENTERS[v]['order'], wins = {}, losses = {}, wins_by_key = {}, losses_by_key = {}}
+      local joker_usage = G.PROFILES[G.SETTINGS.profile].joker_usage[v]
+      joker_usage.wins = joker_usage.wins or {}
+      joker_usage.wins[G.GAME.stake] = (joker_usage.wins[G.GAME.stake] or 0) + 1
+      joker_usage.wins_by_key[SMODS.stake_from_index(G.GAME.stake)] = (joker_usage.wins_by_key[SMODS.stake_from_index(G.GAME.stake)] or 0) + 1
     end
+  end
+  -- This will sticker the previous evo line
+  set_previous_evo_win(card.config.center)
+end
+
+set_previous_evo_win = function(center)
+  local previous = get_previous_evo_from_center(center, true)
+  if previous then
+    -- This is the bit that tracks joker wins
+    G.PROFILES[G.SETTINGS.profile].joker_usage[previous] = G.PROFILES[G.SETTINGS.profile].joker_usage[previous]
+        or {count = 1, order = G.P_CENTERS[previous]['order'], wins = {}, losses = {}, wins_by_key = {}, losses_by_key = {}}
+    local joker_usage = G.PROFILES[G.SETTINGS.profile].joker_usage[previous]
+    joker_usage.wins = joker_usage.wins or {}
+    joker_usage.wins[G.GAME.stake] = (joker_usage.wins[G.GAME.stake] or 0) + 1
+    joker_usage.wins_by_key[SMODS.stake_from_index(G.GAME.stake)] = (joker_usage.wins_by_key[SMODS.stake_from_index(G.GAME.stake)] or 0) + 1
+    -- Moves all the way down the family tree recursively (rather than a gigantic if-else block)
+    set_previous_evo_win(G.P_CENTERS[previous])
   end
 end
 
 poke_can_set_sprite = function(card)
   if poke_is_in_collection(card) and not card.discovered then return false end
   return true
+end
+
+function table.contains(table, element)
+  for _, value in pairs(table) do
+    if value == element then
+      return true
+    end
+  end
+  return false
+end
+
+table.append = function(t1, t2)
+  for _, v in ipairs(t2) do
+    table.insert(t1, v)
+  end
+end
+
+pokermon.find_pool_index = function(pool, name)
+  for k, v in pairs(pool) do
+    if v.name == name then return k end
+  end
+end
+
+pokermon.get_dex_number = function(name)
+  return pokermon.dex_numbers[name]
+end
+
+--- Creates a Set of all the values in a given list, or a Set with 1 given value. Returns nil in place of empty Sets.
+poke_convert_to_set = function(element_or_list)
+  if element_or_list then
+    local set
+    if type(element_or_list) == 'table' then
+      for _, v in ipairs(element_or_list) do
+        set = set or {}
+        set[v] = true
+      end
+    else
+      set = { [element_or_list] = true }
+    end
+    return set
+  end
 end

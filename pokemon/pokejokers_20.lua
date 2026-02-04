@@ -49,15 +49,19 @@ local zoroark = {
     if not type_sticker_applied(card) and not poke_is_in_collection(card) and not G.SETTINGS.paused then
       apply_type_sticker(card, "Dark")
     end
-    if card.area ~= G.jokers and not poke_is_in_collection(card) and not G.SETTINGS.paused then
-      card.ability.extra.hidden_key = card.ability.extra.hidden_key or get_random_poke_key('zoroark', nil, 'poke_safari', nil, nil, {j_poke_zoroark = true})
-      local _o = G.P_CENTERS[card.ability.extra.hidden_key]
-      card.children.center.atlas = G.ASSET_ATLAS[_o.atlas]
-      card.children.center:set_sprite_pos(_o.pos)
-    else
-      card.children.center.atlas = G.ASSET_ATLAS[self.atlas]
-      card.children.center:set_sprite_pos(self.pos)
-    end
+    G.E_MANAGER:add_event(Event({
+      func = function()
+        if card.area ~= G.jokers and not poke_is_in_collection(card) and not G.SETTINGS.paused then
+          card.ability.extra.hidden_key = card.ability.extra.hidden_key or get_random_poke_key('zoroark', nil, 'poke_safari', nil, nil, {j_poke_zoroark = true})
+          local _o = G.P_CENTERS[card.ability.extra.hidden_key]
+          card.children.center.atlas = G.ASSET_ATLAS[_o.atlas]
+          card.children.center:set_sprite_pos(_o.pos)
+        else
+          card.children.center.atlas = G.ASSET_ATLAS[self.atlas]
+          card.children.center:set_sprite_pos(self.pos)
+        end
+        return true
+      end }))
   end,
   generate_ui = function(self, info_queue, card, desc_nodes, specific_vars, full_UI_table)
     local _c = card and card.config.center or card
@@ -272,17 +276,7 @@ local vanillite={
         if card.ability.extra.chips - card.ability.extra.chips_minus <= 0 then 
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    play_sound('tarot1')
-                    card.T.r = -0.2
-                    card:juice_up(0.3, 0.4)
-                    card.states.drag.is = true
-                    card.children.center.pinch.x = true
-                    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.3, blockable = false,
-                        func = function()
-                                G.jokers:remove_card(self)
-                                card:remove()
-                                card = nil
-                            return true; end})) 
+                    remove(self, card, context)
                     return true
                 end
             })) 
@@ -341,17 +335,7 @@ local vanillish={
         if card.ability.extra.chips - card.ability.extra.chips_minus <= 0 then 
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    play_sound('tarot1')
-                    card.T.r = -0.2
-                    card:juice_up(0.3, 0.4)
-                    card.states.drag.is = true
-                    card.children.center.pinch.x = true
-                    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.3, blockable = false,
-                        func = function()
-                                G.jokers:remove_card(self)
-                                card:remove()
-                                card = nil
-                            return true; end})) 
+                    remove(self, card, context)
                     return true
                 end
             })) 
@@ -401,17 +385,7 @@ local vanilluxe={
         if card.ability.extra.chips - card.ability.extra.chips_minus <= 0 then 
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    play_sound('tarot1')
-                    card.T.r = -0.2
-                    card:juice_up(0.3, 0.4)
-                    card.states.drag.is = true
-                    card.children.center.pinch.x = true
-                    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.3, blockable = false,
-                        func = function()
-                                G.jokers:remove_card(self)
-                                card:remove()
-                                card = nil
-                            return true; end})) 
+                    remove(self, card, context)
                     return true
                 end
             }))
@@ -550,15 +524,16 @@ local jellicent = {
 local ferroseed={
   name = "ferroseed",
   pos = {x = 5, y = 7},
-  config = {extra = {rounds = 5}},
+  config = {extra = {rounds = 5, hazard_level = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
       info_queue[#info_queue+1] = G.P_CENTERS.m_wild
       info_queue[#info_queue+1] = G.P_CENTERS.m_steel
       info_queue[#info_queue+1] = G.P_CENTERS.m_poke_hazard
+      info_queue[#info_queue+1] = {set = 'Other', key = 'hazard_level', vars = poke_get_hazard_level_vars()}
     end
-    return {vars = {center.ability.extra.rounds}}
+    return {vars = {center.ability.extra.rounds, center.ability.extra.hazard_level}}
   end,
   rarity = 2,
   cost = 6,
@@ -577,20 +552,27 @@ local ferroseed={
     end
     return level_evo(self, card, context, "j_poke_ferrothorn")
   end,
+  add_to_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(card.ability.extra.hazard_level)
+  end,
+  remove_from_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(-card.ability.extra.hazard_level)
+  end
 }
 -- Ferrothorn 598
 local ferrothorn={
   name = "ferrothorn",
   pos = {x = 6, y = 7},
-  config = {extra = {retriggers = 1}},
+  config = {extra = {retriggers = 1, hazard_level = 1}},
   loc_vars = function(self, info_queue, center)
     type_tooltip(self, info_queue, center)
     if pokermon_config.detailed_tooltips then
       info_queue[#info_queue+1] = G.P_CENTERS.m_wild
       info_queue[#info_queue+1] = G.P_CENTERS.m_steel
       info_queue[#info_queue+1] = G.P_CENTERS.m_poke_hazard
+      info_queue[#info_queue+1] = {set = 'Other', key = 'hazard_level', vars = poke_get_hazard_level_vars()}
     end
-    return {vars = {}}
+    return {vars = {center.ability.extra.hazard_level}}
   end,
   rarity = "poke_safari",
   cost = 8,
@@ -624,6 +606,12 @@ local ferrothorn={
       }
     end
   end,
+  add_to_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(card.ability.extra.hazard_level)
+  end,
+  remove_from_deck = function(self, card, from_debuff)
+    poke_change_hazard_level(-card.ability.extra.hazard_level)
+  end
 }
 -- Klink 599
 -- Klang 600
